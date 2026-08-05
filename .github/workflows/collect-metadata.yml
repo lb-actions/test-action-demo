@@ -1,0 +1,49 @@
+name: CollectMetadata
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    types: ["merge", "open"]
+    branches: ["pr_push"]
+  workflow_dispatch:
+
+jobs:
+  Collect-Metadata:
+    name: Collect-Metadata
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: fast_checkout
+        uses: checkout
+
+      - name: checkout-testcase-repo
+        uses: checkout
+        with:
+          repository: https://gitcode.com/lsc941017/pytest-infra_3017.git
+          ref: main
+          path: ./
+
+      - name: collect-mindie
+        id: collect-mindie
+        uses: lb-actions/openlibing-metadata-collect@v1.0.0
+        with:
+          testcase-path: ./
+          pytest-config-file: ./resource/pytest_mindie.ini
+
+
+      - name: print-metadata-filepath
+        run: |
+          echo "mindie: ${{ steps.collect-mindie.outputs.metadata-output-path }}"
+
+      - name: print-content
+        run: cat ${{ steps.collect-mindsdk.outputs.metadata-output-path }}
+
+
+      # - name: openlibing-upload-reports-style1
+      #   uses: lb-actions/openlibing-upload-reports@v1.0.0
+      #   with:
+      #     files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
+      #     openlibing-secret: ${{ secrets.scheduler_secret }}
+      #     pipeline-id: ${{ github.run_id }}
+      #     pipeline-run-id: ${{ github.run_id }}
+      #     job-id: ${{ steps.get-job-id.outputs.job-id }}

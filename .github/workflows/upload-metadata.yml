@@ -1,0 +1,88 @@
+name: UploadMetadata
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  Upload-Metadata:
+    name: upload-metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: generate-xml
+        run: |
+          cat > /tmp/test_result_WejsKsE.xml << 'EOF'
+          <?xml version="1.0" ?>
+          <testsuites name="Uniautos test">
+              <testsuite name="uniautos" tests="2" skipped="0" failures="0" time="41.0" timestamp="2026-07-07 07:07:07">
+                  <testcase name="TestCase_presomke" time="19.0"/>
+                  <testcase name="TestCase_postsmoke" time="22.0"/>
+              </testsuite>
+          </testsuites>
+          EOF
+          cat > /tmp/metadata_presomke.xml << 'EOF'
+          <?xml version="1.0" ?>
+          <metadata>
+              <pipelineId>4f072c65344d44e089218276623a26d4</pipelineId>
+              <pipelineRunId>04fad577ab6f4dc59191d896fbd511ae</pipelineRunId>
+              <jobId>ffc8fb7d34714aed82d3d53cdb485b48_20260727_1</jobId>
+              <frameType>uniautos</frameType>
+              <repoUrl>https://gitcode.com/lqz2/MindSpeed_testcase.git</repoUrl>
+              <repoBranch>main</repoBranch>
+              <testCases>
+                  <testCase>
+                      <name>TestCase_presomke</name>
+                      <className>TestCase_presomke</className>
+                      <filePath>Testcases/path/TestCase_presomke.py</filePath>
+                      <level>P0</level>
+                      <type>NoType</type>
+                  </testCase>
+                  <testCase>
+                      <name>TestCase_postsmoke</name>
+                      <className>TestCase_postsmoke</className>
+                      <filePath>Testcases/path/TestCase_postsmoke.py</filePath>
+                      <level>P0</level>
+                      <type>NoType</type>
+                  </testCase>
+              </testCases>
+          </metadata>
+          EOF
+
+      - name: Get Job ID
+        id: get-job-id
+        run: |
+          job_id=$(curl -s -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.mytoken }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" \
+            | jq -r '.jobs[0].id')
+          echo "job-id=$job_id" >> $GITHUB_OUTPUT
+          echo "Job ID: $job_id"
+
+      - name: print ids
+        run: |
+          echo "pipeline-id: ${{ github.run_id }}"
+          echo "job-id: ${{ steps.get-job-id.outputs.job-id }}"
+
+      - name: openlibing-upload-reports-style1
+        uses: lb-actions/openlibing-upload-reports@v1.0.0
+        with:
+          files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
+          openlibing-secret: ${{ secrets.scheduler_secret }}
+          pipeline-id: ${{ github.run_id }}
+          pipeline-run-id: ${{ github.run_id }}
+          job-id: ${{ steps.get-job-id.outputs.job-id }}
+
+      - name: openlibing-upload-reports-style2
+        uses: lb-actions/openlibing-upload-reports@v1.0.0
+        with:
+          files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
+          openlibing-secret: ${{ secrets.scheduler_secret }}
+          label: "simulation"
+          archive-path: "testpath/details/${{ github.run_id }}"
