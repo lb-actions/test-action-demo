@@ -14,12 +14,12 @@ jobs:
     needs: []
     steps:
       - name: fast_checkout
-        uses: checkout
+        uses: actions/checkout@v4
 
       - name: checkout-testcase-repo
-        uses: checkout
+        uses: actions/checkout@v4
         with:
-          repository: https://gitcode.com/lsc941017/pytest-infra_3017.git
+          repository: vllm-project/vllm-ascend
           ref: main
           path: ./
 
@@ -27,8 +27,9 @@ jobs:
         id: collect-mindie
         uses: lb-actions/openlibing-metadata-collect@v1.0.0
         with:
-          testcase-path: ./
-          pytest-config-file: ./resource/pytest_mindie.ini
+          testcase-path: ./tests
+          # pytest-config-file: ./resource/pytest_mindie.ini
+          pytest-testkit-url: https://gitcode.com/openlibing/openlibing-pytest-executor/releases/download/v1.0.0-alpha/pytest_testkit-1.0.1-py3-none-any.whl
 
 
       - name: print-metadata-filepath
