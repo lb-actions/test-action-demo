@@ -1,0 +1,26 @@
+{
+  "template_type": "single_device_cover_multi_type",
+  "res_type": "container",
+  "env_definition": {
+    "nodes_1": [
+      {
+        "name": "device_1",
+        "cpu_arch": "AArch64",
+        "cpu_core_num": 1,
+        "npu_gen": "A2",
+        "npu_model": "Ascend 910B4",
+        "npu_num": 1
+      }
+    ],
+    "nodes_2": [
+      {
+        "name": "device_1",
+        "cpu_arch": "AArch64",
+        "cpu_core_num": 1,
+        "npu_gen": "A3",
+        "npu_model": "Ascend 910B4",
+        "npu_num": 1
+      }
+    ]
+  }
+}
