@@ -1,0 +1,44 @@
+name: Upload to OpenLibing
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: generate-xml
+        run: |
+          cat > /tmp/test_result_WejsKsE.xml << 'EOF'
+          <?xml version="1.0" ?>
+          <testsuites name="Uniautos test">
+              <testsuite name="uniautos" tests="2" skipped="0" failures="0" time="41.0" timestamp="2026-07-07 07:07:07">
+                  <testcase name="TestCase_presomke" time="19.0"/>
+                  <testcase name="TestCase_postsmoke" time="22.0"/>
+              </testsuite>
+          </testsuites>
+          EOF
+      - name: info
+        run: |
+          cat upload_to_openlibing.py
+
+      - name: Install dependencies
+        run: |
+          pip install requests>=2.31.0
+
+      - name: Upload files to OpenLibing
+        run: |
+          python upload_to_openlibing.py \
+            --files /tmp/test_result_WejsKsE.xml \
+            --pipeline-id "12333" \
+            --pipeline-run-id "45666" \
+            --job-id "78999" \
+            --openlibing-secret ${{ secrets.scheduler_secret }}
