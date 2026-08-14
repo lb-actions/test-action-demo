@@ -1,7 +1,7 @@
 name: CollectMetadata
 on:
-  push:
-    branches: [ "main" ]
+  # push:
+  #   branches: [ "main" ]
   pull_request:
     types: ["merge", "open"]
     branches: ["pr_push"]
