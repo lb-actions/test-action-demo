@@ -1,4 +1,4 @@
-name: CollectMetadata
+name: CollectMetadataSelf
 on:
   push:
     branches: [ "main" ]
@@ -16,13 +16,6 @@ jobs:
       - name: fast_checkout
         uses: actions/checkout@v4
 
-      - name: checkout-testcase-repo
-        uses: actions/checkout@v4
-        with:
-          repository: vllm-project/vllm-ascend
-          ref: main
-          path: ./
-
       - name: collect-mindie
         id: collect-mindie
         uses: lb-actions/openlibing-metadata-collect@v1.0.0
@@ -35,7 +28,14 @@ jobs:
           echo "mindie: ${{ steps.collect-mindie.outputs.metadata-output-path }}"
 
       - name: print-content
-        run: cat ${{ steps.collect-mindsdk.outputs.metadata-output-path }}
+        run: cat ${{ steps.collect-mindie.outputs.metadata-output-path }}
+
+      - name: openlibing-upload-reports-style1
+        uses: lb-actions/openlibing-upload-reports@v1.0.0
+        with:
+          files: ${{ steps.collect-mindie.outputs.metadata-output-path }}
+          openlibing-secret: ${{ secrets.scheduler_secret }}
+          github-token: ${{ secrets.mytoken }}
 
 
       # - name: openlibing-upload-reports-style1
