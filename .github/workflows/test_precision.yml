@@ -1,0 +1,76 @@
+name: precision-test
+on:
+  # push:
+  #   branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  Test-Precision-With-Diff-PR:
+    name: Collect-Metadata
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: fast_checkout
+        uses: actions/checkout@v4
+
+      - name: Download previous coverage data from OBS
+        run: |
+          mkdir -p coverage
+          if curl -fSL --retry 3 -o previous-coverage.tar \
+            "https://vllm-ascend.obs.cn-north-4.myhuaweicloud.com/ci/precision-test/coverage.tar"; then
+            tar xf previous-coverage.tar -C coverage
+          else
+            echo "::warning::No previous coverage data found on OBS (first run?). Backfill will be skipped."
+          fi
+
+      - name: generate-param
+        run: |
+          # 查找 coverage 目录下的包目录
+          if [ -d "coverage" ]; then
+            COVERAGE_PKG_DIR=$(find coverage -mindepth 1 -maxdepth 1 -type d | head -n1)
+            echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}"
+          else
+            echo "::error::coverage directory not found"
+            exit 1
+          fi
+
+          if [ -d "${COVERAGE_PKG_DIR}" ]; then
+            TASK_DIR=$(find "${COVERAGE_PKG_DIR}" -mindepth 1 -maxdepth 1 -type d | head -n1)
+            echo "TASK_DIR=${TASK_DIR}"
+          else
+            echo "::error::task_dir directory not found"
+            exit 1
+          fi
+
+          # 导出为环境变量供后续步骤使用
+          echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}" >> $GITHUB_ENV
+          echo "TASK_DIR=${TASK_DIR}" >> $GITHUB_ENV
+
+      - name: generate-test-case-map
+        uses: lb-actions/precision-test@v1.0.0
+        with:
+          build-map: true
+          coverage-dir: ${{ env.TASK_DIR }}
+          source-dir: "${{ env.COVERAGE_PKG_DIR }}/covstub"
+          map-file: test_case_map.json
+
+      - name: generate-select-tests-case
+        uses: lb-actions/precision-test@v1.0.0
+        with:
+          github-pr: vllm-project/vllm-ascend#14696
+          source-dir: "${{ env.COVERAGE_PKG_DIR }}/covstub"
+          map-file: test_case_map.json
+
+      - name: cat select-tests-case
+        run: cat recommended_pytest_paths.txt 
+
+      - name: select-tests-case
+        uses: lb-actions/precision-test@v1.0.0
+        with:
+          github-pr: vllm-project/vllm-ascend#12379
+          source-dir: "${{ env.COVERAGE_PKG_DIR }}/covstub"
+
+      - name: cat select-tests-case
+        run: cat recommended_pytest_paths.txt 
