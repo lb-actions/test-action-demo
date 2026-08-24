@@ -23,17 +23,19 @@ jobs:
           testcase-path: ./tests
           # pytest-config-file: ./resource/pytest_mindie.ini
 
-      - name: generate-xml
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install pytest
         run: |
-          cat > /tmp/test_result_WejsKsE.xml << 'EOF'
-          <?xml version="1.0" ?>
-          <testsuites name="Uniautos test">
-              <testsuite name="uniautos" tests="2" skipped="0" failures="0" time="41.0" timestamp="2026-07-07 07:07:07">
-                  <testcase classname="TestBatchInvariant" name="test_enable_batch_invariant_mode_ascendc_path" time="5.620"/>
-                  <testcase classname="TestBatchInvariant" name="test_override_envs_for_invariance" time="5.620"/>
-              </testsuite>
-          </testsuites>
-          EOF
+          pip install pytest
+
+      - name: generate-xml
+        continue-on-error: true
+        run: |
+          pytest ./tests --junitxml=/tmp/test_result_WejsKsE.xml
 
 
       - name: print-metadata-filepath
