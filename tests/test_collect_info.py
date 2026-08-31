@@ -56,9 +56,7 @@ class TestLocalExecution:
         print(777)
         assert True
 
-
     def test_7_remote_run_p0_case2(self):
-        logger.fail("this is a error log")
         assert True
 
     def test_8_env_marker_p1_case1(self):

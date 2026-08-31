@@ -1,0 +1,21 @@
+{
+    "template_type": "self_test_multi_type",
+    "env_definition": {
+        "nodes_1": [
+            {
+                "name": "device1",
+                "res_type": "container",
+                "cpu_arch": "ARM",
+                "cpu_core_num": 2,
+                "memory_size": 2
+            },
+            {
+                "name": "device2",
+                "res_type": "container",
+                "cpu_arch": "ARM",
+                "cpu_core_num": 2,
+                "memory_size": 2
+            }
+        ]
+    }
+}
