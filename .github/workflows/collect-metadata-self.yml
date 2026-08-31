@@ -18,10 +18,10 @@ jobs:
 
       - name: collect-mindie
         id: collect-mindie
-        uses: lb-actions/openlibing-metadata-collect@v1.0.0
+        uses: lb-actions/openlibing-metadata-collect@v1.0.1
         with:
-          testcase-path: ./tests
-          # pytest-config-file: ./resource/pytest_mindie.ini
+          testcase-path: ./tests/noini
+          # pytest-config-file: ""
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -54,12 +54,22 @@ jobs:
           openlibing-secret: ${{ secrets.scheduler_secret }}
           github-token: ${{ secrets.mytoken }}
 
+      - name: collect-multi-nodes
+        id: collect-multi-nodes
+        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        with:
+          pytest-config-file: resources/pytest_selftest_multi_nodes.ini
+          rootdir: ./
 
-      # - name: openlibing-upload-reports-style1
-      #   uses: lb-actions/openlibing-upload-reports@v1.0.0
-      #   with:
-      #     files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
-      #     openlibing-secret: ${{ secrets.scheduler_secret }}
-      #     pipeline-id: ${{ github.run_id }}
-      #     pipeline-run-id: ${{ github.run_id }}
-      #     job-id: ${{ steps.get-job-id.outputs.job-id }}
+      - name: print-multi-nodes
+        run: cat ${{ steps.collect-multi-nodes.outputs.metadata-output-path }}
+
+      - name: collect-multi-device
+        id: collect-multi-device
+        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        with:
+          pytest-config-file: resources/pytest_selftest_multi_device.ini
+          rootdir: ./
+
+      - name: print-multi-device
+        run: cat ${{ steps.collect-multi-device.outputs.metadata-output-path }}

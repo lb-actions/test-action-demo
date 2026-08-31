@@ -15,14 +15,14 @@ template_config = {
 
 class TestLocalExecution:
 
-    @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
+    # @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
     # @pytest.mark.env({'name':'A2_1','model': 'Atlas 800T A2'}, {'name':'A2_2','model': 'Atlas 800T A2'})
     @pytest.mark.smoke
     def test_1_no_case_info(self):
         assert True
 
     @pytest.mark.case_info(level="P0")
-    @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
+    # @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
     @pytest.mark.smoke
     def test_2_only_case_info(self):
         cmd = "ls"
@@ -31,7 +31,7 @@ class TestLocalExecution:
         assert True
 
     @pytest.mark.case_info(level="P0", type="case")
-    @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
+    # @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
     @pytest.mark.smoke
     def test_3_single_device_P1_case(self):
         cmd = "ls"
@@ -39,8 +39,8 @@ class TestLocalExecution:
         print("======== test_single_device finished =========")
         assert True
 
-    @pytest.mark.case_info(test="P1", user="case2")
-    @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
+    # @pytest.mark.case_info(test="P1", user="case2")
+    # @pytest.mark.env(template=template_config["single_device_cover_multi_type"])
     @pytest.mark.smoke
     def test_4_single_device_P1_case2(self):
         cmd = "ls"
