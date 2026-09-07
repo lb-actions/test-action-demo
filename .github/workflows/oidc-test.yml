@@ -1,0 +1,78 @@
+name: upload-with-oidc
+on:
+  # push:
+  #   branches: [ "main" ]
+  # pull_request:
+  #   types: ["merge", "open"]
+  #   branches: ["pr_push"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  Collect-Metadata:
+    name: Collect-Metadata
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: fast_checkout
+        uses: actions/checkout@v4
+
+      - name: collect-mindie
+        id: collect-mindie
+        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        with:
+          testcase-path: ./tests/noini
+          # pytest-config-file: ""
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install pytest
+        run: |
+          pip install pytest
+
+      - name: generate-xml
+        continue-on-error: true
+        run: |
+          pytest ./tests --junitxml=/tmp/test_result_WejsKsE.xml
+
+
+      - name: print-metadata-filepath
+        run: |
+          echo "mindie: ${{ steps.collect-mindie.outputs.metadata-output-path }}"
+
+      - name: print-content
+        run: cat ${{ steps.collect-mindie.outputs.metadata-output-path }}
+
+      - name: openlibing-upload-reports-with-oidc
+        uses: lb-actions/openlibing-upload-reports@v1.0.1
+        with:
+          files: >
+            ${{ steps.collect-mindie.outputs.metadata-output-path }}
+            /tmp/test_result_WejsKsE.xml
+          github-token: ${{ secrets.mytoken }}
+
+      - name: collect-multi-nodes
+        id: collect-multi-nodes
+        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        with:
+          pytest-config-file: resources/pytest_selftest_multi_nodes.ini
+          rootdir: ./
+
+      - name: print-multi-nodes
+        run: cat ${{ steps.collect-multi-nodes.outputs.metadata-output-path }}
+
+      - name: collect-multi-device
+        id: collect-multi-device
+        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        with:
+          pytest-config-file: resources/pytest_selftest_multi_device.ini
+          rootdir: ./
+
+      - name: print-multi-device
+        run: cat ${{ steps.collect-multi-device.outputs.metadata-output-path }}
