@@ -1,0 +1,91 @@
+name: precision-test-demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  precision-test:
+    name: 精准测试用例选择
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Download previous coverage data from OBS
+        run: |
+          set -e
+          mkdir -p coverage
+          if curl -fSL --retry 3 -o previous-coverage.tar \
+            "https://vllm-ascend.obs.cn-north-4.myhuaweicloud.com/ci/precision-test/coverage.tar"; then
+            tar xf previous-coverage.tar -C coverage
+            echo "=== coverage 目录结构 ==="
+            find coverage -maxdepth 3 -type d
+          else
+            echo "::error::No previous coverage data found on OBS, cannot build map"
+            exit 1
+          fi
+
+      - name: generate-param
+        run: |
+          set -e
+          # coverage/<pkg-dir>/ 下：covstub/ 为源代码，<task-dir>/ 为覆盖率数据
+          if [ -d "coverage" ]; then
+            COVERAGE_PKG_DIR=$(find coverage -mindepth 1 -maxdepth 1 -type d | head -n1)
+            echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}"
+          else
+            echo "::error::coverage directory not found"
+            exit 1
+          fi
+
+          if [ -d "${COVERAGE_PKG_DIR}" ]; then
+            # 排除 covstub 源码目录，定位真正的覆盖率数据目录
+            TASK_DIR=$(find "${COVERAGE_PKG_DIR}" -mindepth 1 -maxdepth 1 -type d ! -name "covstub" | head -n1)
+            echo "TASK_DIR=${TASK_DIR}"
+          else
+            echo "::error::task_dir directory not found"
+            exit 1
+          fi
+
+          # 导出为环境变量供后续步骤使用
+          echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}" >> $GITHUB_ENV
+          echo "TASK_DIR=${TASK_DIR}" >> $GITHUB_ENV
+
+      # 阶段一：基于覆盖率数据构建用例映射 map（无需 PR，build-map 后插件自动退出）
+      - name: generate-test-case-map
+        uses: lb-actions/precision-test@tzing_dev
+        with:
+          repo-name: pytorch
+          build-map: true
+          coverage-dir: ${{ env.TASK_DIR }}
+          source-dir: ${{ env.COVERAGE_PKG_DIR }}/covstub
+          map-file: test_case_map.json
+
+      # 阶段二：使用构建好的 map + github-pr diff 生成推荐用例文件 recommended_pytest_paths.txt
+      - name: generate-select-tests-case
+        id: precision-test
+        uses: lb-actions/precision-test@tzing_dev
+        continue-on-error: true
+        with:
+          repo-name: vllm-ascend
+          github-pr: vllm-project/vllm-ascend#14696
+          source-dir: ${{ env.COVERAGE_PKG_DIR }}/covstub
+          map-file: test_case_map.json
+          min-affected: 1
+          dedup: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.MYTOKEN }}
+          PYTHON_EXEC_TIMEOUT_SECONDS: "900"
+
+      - name: 执行选中用例
+        if: ${{ steps.precision-test.conclusion == 'success' }}
+        run: |
+          set -e
+          if [ -f recommended_pytest_paths.txt ]; then
+            echo "=== 推荐执行的用例 ==="
+            cat recommended_pytest_paths.txt
+            echo "=== 开始执行 ==="
+            pytest -n auto $(cat recommended_pytest_paths.txt)
+          else
+            echo "无推荐用例文件，跳过执行"
+          fi
