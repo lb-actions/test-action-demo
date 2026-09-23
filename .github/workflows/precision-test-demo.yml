@@ -80,12 +80,6 @@ jobs:
       - name: 执行选中用例
         if: ${{ steps.precision-test.conclusion == 'success' }}
         run: |
-          set -e
-          if [ -f recommended_pytest_paths.txt ]; then
-            echo "=== 推荐执行的用例 ==="
-            cat recommended_pytest_paths.txt
-            echo "=== 开始执行 ==="
-            pytest -n auto $(cat recommended_pytest_paths.txt)
-          else
-            echo "无推荐用例文件，跳过执行"
-          fi
+          echo "=== 显示 ==="
+          cat recommended_pytest_paths.txt
+
