@@ -55,7 +55,7 @@ jobs:
       - name: generate-test-case-map
         uses: lb-actions/precision-test@tzing_dev
         with:
-          repo-name: pytorch
+          repo: pytorch
           build-map: true
           coverage-dir: ${{ env.TASK_DIR }}
           source-dir: ${{ env.COVERAGE_PKG_DIR }}/covstub
@@ -67,7 +67,7 @@ jobs:
         uses: lb-actions/precision-test@tzing_dev
         continue-on-error: true
         with:
-          repo-name: vllm-ascend
+          repo: vllm_ascend
           github-pr: vllm-project/vllm-ascend#14696
           source-dir: ${{ env.COVERAGE_PKG_DIR }}/covstub
           map-file: test_case_map.json
@@ -76,6 +76,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MYTOKEN }}
           PYTHON_EXEC_TIMEOUT_SECONDS: "900"
+
+      - name: 显示map
+        run: |
+          echo "=== map 内容 ==="
+          cat test_case_map.json
 
       - name: 执行选中用例
         if: ${{ steps.precision-test.conclusion == 'success' }}
