@@ -3,73 +3,57 @@ name: precision-test-demo
 on:
   workflow_dispatch:
 
+permissions:
+  id-token: write # OIDC 换证（OBS 上传/下载）
+  contents: read
+
 jobs:
   precision-test:
-    name: 精准测试用例选择
+    name: 精准测试覆盖率上传与用例选择
     runs-on: ubuntu-latest
     needs: []
     steps:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: Download previous coverage data from OBS
+      # 下载历史覆盖率 tar 包作为上传素材（公开直链，仅作演示数据源）
+      - name: Download coverage tar as upload material
         run: |
           set -e
-          mkdir -p coverage
-          if curl -fSL --retry 3 -o previous-coverage.tar \
-            "https://vllm-ascend.obs.cn-north-4.myhuaweicloud.com/ci/precision-test/coverage.tar"; then
-            tar xf previous-coverage.tar -C coverage
-            echo "=== coverage 目录结构 ==="
-            find coverage -maxdepth 3 -type d
-          else
-            echo "::error::No previous coverage data found on OBS, cannot build map"
-            exit 1
-          fi
+          curl -fSL --retry 3 -o coverage.tar \
+            "https://vllm-ascend.obs.cn-north-4.myhuaweicloud.com/ci/precision-test/coverage.tar"
+          ls -lh coverage.tar
 
-      - name: generate-param
-        run: |
-          set -e
-          # coverage/<pkg-dir>/ 下：covstub/ 为源代码，<task-dir>/ 为覆盖率数据
-          if [ -d "coverage" ]; then
-            COVERAGE_PKG_DIR=$(find coverage -mindepth 1 -maxdepth 1 -type d | head -n1)
-            echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}"
-          else
-            echo "::error::coverage directory not found"
-            exit 1
-          fi
-
-          if [ -d "${COVERAGE_PKG_DIR}" ]; then
-            # 排除 covstub 源码目录，定位真正的覆盖率数据目录
-            TASK_DIR=$(find "${COVERAGE_PKG_DIR}" -mindepth 1 -maxdepth 1 -type d ! -name "covstub" | head -n1)
-            echo "TASK_DIR=${TASK_DIR}"
-          else
-            echo "::error::task_dir directory not found"
-            exit 1
-          fi
-
-          # 导出为环境变量供后续步骤使用
-          echo "COVERAGE_PKG_DIR=${COVERAGE_PKG_DIR}" >> $GITHUB_ENV
-          echo "TASK_DIR=${TASK_DIR}" >> $GITHUB_ENV
-
-      # 阶段一：基于覆盖率数据构建用例映射 map（无需 PR，build-map 后插件自动退出）
-      - name: generate-test-case-map
-        uses: lb-actions/precision-test@tzing_dev
+      # 阶段一（A 模式）：上传 tar 到 OBS → 解压解析（自动发现覆盖率根目录与内置 covstub）
+      # → 生成 test_case_map.json → 上传 map → 清空追加表
+      - name: upload-coverage-and-build-map
+        id: upload
+        uses: lb-actions/precision-test@261010-update-test
         with:
-          repo: pytorch
-          build-map: true
-          coverage-dir: ${{ env.TASK_DIR }}
-          source-dir: ${{ env.COVERAGE_PKG_DIR }}/covstub
+          repo: vllm_ascend
+          coverage-tar-path: coverage.tar
+          project-name: vllm-ascend
           map-file: test_case_map.json
+        env:
+          PYTHON_EXEC_TIMEOUT_SECONDS: "1800"
 
-      # 阶段二：使用构建好的 map + github-pr diff 生成推荐用例文件 recommended_pytest_paths.txt
-      - name: generate-select-tests-case
+      - name: 显示上传结果
+        run: |
+          echo "upload-success: ${{ steps.upload.outputs.upload-success }}"
+          echo "obs-url: ${{ steps.upload.outputs.obs-url }}"
+          echo "PRECISION_SOURCE_DIR: ${{ env.PRECISION_SOURCE_DIR }}"
+          echo "PRECISION_COVERAGE_DIR: ${{ env.PRECISION_COVERAGE_DIR }}"
+
+      # 阶段二：用刚生成的本地 map + PR diff 做用例选择
+      # （C 模式默认开启：同时下载 OBS 追加表并合并进推荐列表，验证 OIDC 读链路）
+      - name: select-tests
         id: precision-test
-        uses: lb-actions/precision-test@tzing_dev
+        uses: lb-actions/precision-test@261010-update-test
         continue-on-error: true
         with:
           repo: vllm_ascend
           github-pr: vllm-project/vllm-ascend#14696
-          source-dir: ${{ env.COVERAGE_PKG_DIR }}/covstub
+          source-dir: ${{ env.PRECISION_SOURCE_DIR }}
           map-file: test_case_map.json
           min-affected: 1
           dedup: true
@@ -79,12 +63,11 @@ jobs:
 
       - name: 显示map
         run: |
-          echo "=== map 内容 ==="
-          cat test_case_map.json
+          echo "=== map 内容（前50行）==="
+          head -n 50 test_case_map.json
 
-      - name: 执行选中用例
+      - name: 显示推荐用例
         if: ${{ steps.precision-test.conclusion == 'success' }}
         run: |
-          echo "=== 显示 ==="
+          echo "=== 推荐用例 ==="
           cat recommended_pytest_paths.txt
-
