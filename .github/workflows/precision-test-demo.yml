@@ -33,9 +33,8 @@ jobs:
           repo: vllm_ascend
           coverage-tar-path: coverage.tar
           project-name: vllm-ascend
+          obs-bucket-name: op-case-result
           map-file: test_case_map.json
-          # GitHub 平台的 OIDC 换证配置（存放在 GitHub Actions secrets，变量名 OIDC_CONFIG）
-          oidc-config: ${{ secrets.OIDC_CONFIG }}
         env:
           PYTHON_EXEC_TIMEOUT_SECONDS: "1800"
           MAX_COVERAGE_TAR_SIZE_MB: "2048" # 演示tar包572MB，临时放宽上限（遗留：改为流式上传后移除）
