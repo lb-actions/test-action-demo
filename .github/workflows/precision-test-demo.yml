@@ -36,6 +36,7 @@ jobs:
           map-file: test_case_map.json
         env:
           PYTHON_EXEC_TIMEOUT_SECONDS: "1800"
+          MAX_COVERAGE_TAR_SIZE_MB: "2048" # 演示tar包572MB，临时放宽上限（遗留：改为流式上传后移除）
 
       - name: 显示上传结果
         run: |
