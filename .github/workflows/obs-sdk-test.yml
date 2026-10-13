@@ -1,0 +1,25 @@
+name: obs-sdk-test
+on:
+  workflow_dispatch:
+    inputs:
+      file-path:
+        description: "待上传文件路径（相对仓库根目录）"
+        required: false
+        default: "./README.md"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test-obs-sdk:
+    name: Test-OBS-SDK
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Run obs-sdk action (OIDC upload OBS)
+        uses: ./.github/actions/obs-sdk
+        with:
+          file-path: ${{ inputs.file-path }}

@@ -1,0 +1,11 @@
+name: "Openlibing OBS SDK Action (GitHub)"
+description: "基于 @openlibing/huaweicloud-oidc-client SDK：GitHub Actions OIDC 免认证换取华为云临时凭证并上传 OBS"
+
+inputs:
+  file-path:
+    description: "待上传文件路径（如 ./README.md），上传到桶 op-case-result 的 obs-sdk/<文件名>"
+    required: true
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
