@@ -40,7 +40,7 @@ jobs:
           oidc-config: '{"oidcProviderName":"GitHubActions","agencyName":"github-actions","debug":true}'
         env:
           PYTHON_EXEC_TIMEOUT_SECONDS: "1800"
-          MAX_COVERAGE_TAR_SIZE_MB: "2048" # 演示tar包572MB，临时放宽上限（遗留：改为流式上传后移除）
+          MAX_COVERAGE_TAR_SIZE_MB: "2048" # 演示tar包572MB，放宽大小闸门（上传已改为流式，无内存风险）
 
       - name: 显示上传结果
         run: |
@@ -60,6 +60,11 @@ jobs:
           github-pr: vllm-project/vllm-ascend#14696
           source-dir: ${{ env.PRECISION_SOURCE_DIR }}
           map-file: test_case_map.json
+          # 追加表下载路径必须与阶段一上传路径一致，需显式传 project-name
+          #（否则回退 demo 仓库名，会去 precision/Ascend/test-action-demo/ 下找，404）
+          project-name: vllm-ascend
+          # 与阶段一相同的换证组合：默认 GitCodeActions 在 GitHub 平台必然换证失败
+          oidc-config: '{"oidcProviderName":"GitHubActions","agencyName":"github-actions","debug":true}'
           min-affected: 1
           dedup: true
         env:
