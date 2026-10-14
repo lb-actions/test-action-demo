@@ -35,9 +35,9 @@ jobs:
           project-name: vllm-ascend
           obs-bucket-name: op-case-result
           map-file: test_case_map.json
-          # openlibing 账号侧已注册 GitHubActions 提供商（GitHub 平台签发），
-          # 仅覆盖提供商名，账号/委托/区域走 SDK 内置默认（cn-southwest-2 / gitcode-actions）
-          oidc-config: '{"oidcProviderName":"GitHubActions"}'
+          # GitHub 平台换证组合（与 main 分支 obs-sdk 测试通过的一致）：
+          # GitHubActions 提供商 + github-actions 委托（SDK 默认的 gitcode-actions 委托未放行该提供商）
+          oidc-config: '{"oidcProviderName":"GitHubActions","agencyName":"github-actions","debug":true}'
         env:
           PYTHON_EXEC_TIMEOUT_SECONDS: "1800"
           MAX_COVERAGE_TAR_SIZE_MB: "2048" # 演示tar包572MB，临时放宽上限（遗留：改为流式上传后移除）
