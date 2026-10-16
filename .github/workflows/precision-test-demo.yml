@@ -88,7 +88,7 @@ jobs:
       # coverage-dir；同时默认合并追加表（C 模式链路复用）
       - name: select-tests-from-obs
         id: select-obs
-        uses: lb-actions/precision-test@261010-update-test
+        uses: lb-actions/precision-test@261016-download-coverage
         continue-on-error: true
         with:
           repo: vllm_ascend
