@@ -81,3 +81,29 @@ jobs:
         run: |
           echo "=== 推荐用例 ==="
           cat recommended_pytest_paths.txt
+
+      # 阶段三（D 模式）：只传 github-pr + download-coverage，验证 OBS 下载闭环
+      # —— 插件从 OBS 拉取阶段一上传的 tar + map（SaveAsFile 流式落盘），解压后
+      # 自动发现 covstub 与覆盖率根目录并回填，无需传 source-dir / map-file /
+      # coverage-dir；同时默认合并追加表（C 模式链路复用）
+      - name: select-tests-from-obs
+        id: select-obs
+        uses: lb-actions/precision-test@261010-update-test
+        continue-on-error: true
+        with:
+          repo: vllm_ascend
+          github-pr: vllm-project/vllm-ascend#14696
+          download-coverage: 'true'
+          # 下载路径必须与阶段一上传路径一致（precision/Ascend/vllm-ascend/）
+          project-name: vllm-ascend
+          # GitHub 平台换证组合（同阶段一/二）
+          oidc-config: '{"oidcProviderName":"GitHubActions","agencyName":"github-actions","debug":true}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.MYTOKEN }}
+          PYTHON_EXEC_TIMEOUT_SECONDS: "900"
+
+      - name: 显示 OBS 下载模式推荐结果
+        if: ${{ steps.select-obs.conclusion == 'success' }}
+        run: |
+          echo "=== D 模式推荐用例 ==="
+          cat recommended_pytest_paths.txt
