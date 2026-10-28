@@ -6,6 +6,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   Upload-Metadata:
     name: upload-metadata
@@ -54,11 +58,22 @@ jobs:
           EOF
 
       - name: openlibing-upload-reports-style1
-        uses: lb-actions/openlibing-upload-reports@v1.0.0
+        uses: lb-actions/openlibing-upload-reports@tzing_dev
         with:
           files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
           openlibing-secret: ${{ secrets.scheduler_secret }}
           github-token: ${{ secrets.mytoken }}
+
+      - name:
+        run: |
+          cp /tmp/test_result_WejsKsE.xml /tmp/test_result_WejsKsE2.xml
+          cp /tmp/metadata_presomke.xml /tmp/metadata_presomke2.xml
+
+      - name: openlibing-upload-reports-style1
+        uses: lb-actions/openlibing-upload-reports@tzing_dev
+        with:
+          files: "/tmp/test_result_WejsKsE2.xml /tmp/metadata_presomke2.xml"
+          openlibing-secret: ${{ secrets.scheduler_secret }}
 
       # - name: openlibing-upload-reports-style2
       #   uses: lb-actions/openlibing-upload-reports@v1.0.0
