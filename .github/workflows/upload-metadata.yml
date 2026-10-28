@@ -58,11 +58,17 @@ jobs:
           EOF
 
       - name: openlibing-upload-reports-style1
+        id: upload
         uses: lb-actions/openlibing-upload-reports@tzing_dev
         with:
           files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
-          openlibing-secret: ${{ secrets.scheduler_secret }}
           github-token: ${{ secrets.mytoken }}
+
+      - name: Check upload result
+        run: |
+          echo "success: ${{ steps.upload.outputs.success }}"
+          echo "status-code: ${{ steps.upload.outputs.status-code }}"
+          echo "response: ${{ steps.upload.outputs.response-text }}"
 
       - name:
         run: |
@@ -73,7 +79,6 @@ jobs:
         uses: lb-actions/openlibing-upload-reports@tzing_dev
         with:
           files: "/tmp/test_result_WejsKsE2.xml /tmp/metadata_presomke2.xml"
-          openlibing-secret: ${{ secrets.scheduler_secret }}
 
       # - name: openlibing-upload-reports-style2
       #   uses: lb-actions/openlibing-upload-reports@v1.0.0
