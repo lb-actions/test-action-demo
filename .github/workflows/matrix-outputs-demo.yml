@@ -1,0 +1,70 @@
+name: matrix-outputs-demo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  produce-outputs:
+    name: 生成路径输出
+    runs-on: ubuntu-latest
+    outputs:
+      case-logs: ${{ steps.gen-dirs.outputs.case-logs }}
+      case-env-log: ${{ steps.gen-dirs.outputs.case-env-log }}
+      case-logs-fail: ${{ steps.gen-dirs.outputs.case-logs-fail }}
+      case-env-log-fail: ${{ steps.gen-dirs.outputs.case-env-log-fail }}
+    steps:
+      - name: 生成临时日志目录
+        id: gen-dirs
+        run: |
+          base=/tmp/nightly-case-logs
+          mkdir -p "$base/case-logs" "$base/case-env-log" \
+            "$base/case-logs-fail" "$base/case-env-log-fail"
+          for d in case-logs case-env-log case-logs-fail case-env-log-fail; do
+            echo "$d=$base/$d" >> "$GITHUB_OUTPUT"
+          done
+
+  print-direct:
+    name: 非 matrix 直接读取 outputs
+    runs-on: ubuntu-latest
+    needs: [produce-outputs]
+    steps:
+      - name: print outputs
+        run: |
+          echo "case-logs=${{ needs.produce-outputs.outputs.case-logs }}"
+          echo "case-env-log=${{ needs.produce-outputs.outputs.case-env-log }}"
+          echo "case-logs-fail=${{ needs.produce-outputs.outputs.case-logs-fail }}"
+          echo "case-env-log-fail=${{ needs.produce-outputs.outputs.case-env-log-fail }}"
+
+  matrix-by-key:
+    name: matrix 按 key 读取 outputs
+    runs-on: ubuntu-latest
+    needs: [produce-outputs]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: 所有用例执行日志
+            key: case-logs
+          - name: 所有用例环境日志
+            key: case-env-log
+          - name: 所有失败用例执行日志
+            key: case-logs-fail
+          - name: 所有失败用例环境日志
+            key: case-env-log-fail
+    steps:
+      - name: print matrix output
+        run: echo "${{ matrix.name }} => ${{ needs.produce-outputs.outputs[matrix.key] }}"
+
+  matrix-from-outputs:
+    name: matrix 直接使用 outputs 值
+    runs-on: ubuntu-latest
+    needs: [produce-outputs]
+    strategy:
+      fail-fast: false
+      matrix:
+        test-path:
+          - ${{ needs.produce-outputs.outputs.case-logs }}
+          - ${{ needs.produce-outputs.outputs.case-env-log }}
+    steps:
+      - name: print matrix path
+        run: echo "test-path=${{ matrix.test-path }}"
