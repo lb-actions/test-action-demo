@@ -1,0 +1,25 @@
+name: "Test Result Summary Generator"
+description: "Generate test results summary from JSON file and output to workflow step summary"
+author: "openlibing"
+
+inputs:
+  json-file:
+    description: "Path(s) to JSON file(s) containing test case execution results (newline for multiple files)"
+    required: true
+  last-json:
+    description: >-
+      Path(s) to JSON file(s) containing last test results for comparison
+      (only passed cases, newline for multiple files)
+    required: false
+
+outputs:
+  total-cases:
+    description: "Total number of test cases"
+  passed-cases:
+    description: "Number of passed test cases"
+  not-passed-cases:
+    description: "Number of test cases that did not pass (failed, skipped, error, unknown, etc.)"
+
+runs:
+  using: "node24"
+  main: "dist/index.js"

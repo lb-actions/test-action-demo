@@ -1,0 +1,151 @@
+name: test-result-display
+on:
+
+  workflow_dispatch:
+
+
+jobs:
+  test-result-display:
+    name: 测试结果展示
+    runs-on: ubuntu-latest
+    steps:
+      - name: fast_checkout
+        uses: actions/checkout@v4
+
+      # 生成用例 1 的 JSON: resultDownloadUrl 为正常的 https OBS 下载链接
+      # /tmp 在 validateJsonFilePath 白名单内
+      - name: 生成正常URL的json
+        run: |
+          cat > /tmp/normal-result.json <<'EOF'
+          {
+            "testCasesResult": [
+              {
+                "name": "test_ATB_ActivationOperation_python_api_001",
+                "number": "test_ATB_ActivationOperation_python_api_001",
+                "beginTime": 1789974517273,
+                "endTime": 1789975471218,
+                "state": "passed",
+                "description": null,
+                "resultDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_ActivationOperation_python_api_001.html",
+                "envDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_ActivationOperation_python_api_001_log.zip"
+              },
+              {
+                "name": "test_ATB_SoftmaxOperation_python_api_001",
+                "number": "test_ATB_SoftmaxOperation_python_api_001",
+                "beginTime": 1789974595456,
+                "endTime": 1789974670768,
+                "state": "failed",
+                "description": null,
+                "resultDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_SoftmaxOperation_python_api_001.html",
+                "envDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_SoftmaxOperation_python_api_001_log.zip"
+              }
+            ]
+          }
+          EOF
+
+      # 生成 last-json(正常URL): 与 normal-result.json 结构一致, state 全为 passed 以通过 passedOnly 过滤
+      - name: 生成last-json-正常URL
+        run: |
+          cat > /tmp/last-normal.json <<'EOF'
+          {
+            "testCasesResult": [
+              {
+                "name": "test_ATB_ActivationOperation_python_api_001",
+                "number": "test_ATB_ActivationOperation_python_api_001",
+                "beginTime": 1789974517273,
+                "endTime": 1789975471218,
+                "state": "passed",
+                "description": null,
+                "resultDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_ActivationOperation_python_api_001.html",
+                "envDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_ActivationOperation_python_api_001_log.zip"
+              },
+              {
+                "name": "test_ATB_SoftmaxOperation_python_api_001",
+                "number": "test_ATB_SoftmaxOperation_python_api_001",
+                "beginTime": 1789974595456,
+                "endTime": 1789974670768,
+                "state": "passed",
+                "description": null,
+                "resultDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_SoftmaxOperation_python_api_001.html",
+                "envDownloadUrl": "https://ascend-cann-open.obs.cn-north-4.myhuaweicloud.com/version_smoke/1e20b309fcb34b00a0043a87e461c95a202609214371/test_ATB_SoftmaxOperation_python_api_001_log.zip"
+              }
+            ]
+          }
+          EOF
+
+      # 用例 1: 期望 用例结果列展示为可点击的 [下载] 链接; last-json 触发"重试结果"列
+      - name: 测试结果display-正常URL
+        uses: ./.github/action/test-result-display
+        continue-on-error: true
+        with:
+          json-file: /tmp/normal-result.json
+          last-json: /tmp/last-normal.json
+
+      # 生成用例 2 的 JSON: resultDownloadUrl 不以 http:// 或 https:// 开头
+      # /tmp 在 validateJsonFilePath 白名单内
+      - name: 生成非httpURL的json
+        run: |
+          cat > /tmp/non-http-result.json <<'EOF'
+          {
+            "testCasesResult": [
+              {
+                "name": "test_local_report_case_001",
+                "number": "test_local_report_case_001",
+                "beginTime": 1789974517273,
+                "endTime": 1789975471218,
+                "state": "passed",
+                "description": null,
+                "resultDownloadUrl": "",
+                "envDownloadUrl": ""
+              },
+              {
+                "name": "test_local_report_case_002",
+                "number": "test_local_report_case_002",
+                "beginTime": 1789974595456,
+                "endTime": 1789974670768,
+                "state": "failed",
+                "description": null,
+                "resultDownloadUrl": "",
+                "envDownloadUrl": ""
+              }
+            ]
+          }
+          EOF
+
+      # 生成 last-json(非httpURL): 与 non-http-result.json 结构一致, state 全为 passed 以通过 passedOnly 过滤
+      - name: 生成last-json-非httpURL
+        run: |
+          cat > /tmp/last-non-http.json <<'EOF'
+          {
+            "testCasesResult": [
+              {
+                "name": "test_local_report_case_001",
+                "number": "test_local_report_case_001",
+                "beginTime": 1789974517273,
+                "endTime": 1789975471218,
+                "state": "passed",
+                "description": null,
+                "resultDownloadUrl": "",
+                "envDownloadUrl": ""
+              },
+              {
+                "name": "test_local_report_case_002",
+                "number": "test_local_report_case_002",
+                "beginTime": 1789974595456,
+                "endTime": 1789974670768,
+                "state": "passed",
+                "description": null,
+                "resultDownloadUrl": "",
+                "envDownloadUrl": ""
+              }
+            ]
+          }
+          EOF
+
+      # 用例 2: 期望 用例结果列被隐藏（hasHttpResultUrl 返回 false，整列不渲染）; last-json 触发"重试结果"列
+      - name: 测试结果display-非httpURL
+        uses: ./.github/action/test-result-display
+        continue-on-error: true
+        with:
+          json-file: /tmp/non-http-result.json
+          last-json: /tmp/last-non-http.json

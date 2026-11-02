@@ -1,0 +1,27 @@
+{
+  "name": "test-result-summary",
+  "version": "1.0.0",
+  "description": "GitCode Action to generate test results summary from JSON file",
+  "main": "index.js",
+  "scripts": {
+    "build": "ncc build index.js --license licenses.txt",
+    "package": "npm run build && zip -r test-result-display-v$(node -p \"require('./package.json').version\").zip dist/ action.yml"
+  },
+  "keywords": [
+    "gitcode",
+    "action",
+    "test",
+    "summary"
+  ],
+  "author": "openlibing",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.10.0"
+  },
+  "overrides": {
+    "@actions/http-client": "3.0.2"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.0"
+  }
+}
