@@ -1,0 +1,68 @@
+name: Build test case map (standalone build-map)
+
+# 验证 lb-actions/precision-test@v1.0.8 修复：仅传 build-map: true（无 github-pr /
+# gitcode-pr / coverage-tar-path）时，Action 应调用 Python CLI 并生成 map 文件。
+# v1.0.7 及之前版本该场景下 runPrecisionTest 不会被调用，map 不会生成。
+# 数据说明：
+#   data/coverage-data/  3 个 sglang 风格测试用例目录（含 coverage SQLite）
+#   data/covstub/        sglang 源码桩（噪音过滤用）
+# 预期 map 条目（共 2 条）：
+#   test/registered/npu/test_foo.py
+#     -> srt/utils.py 覆盖行 {2,5}（def/空白行被噪音过滤器剔除）
+#   python/sglang/multimodal_gen/test/test_bar.py::TestX::test_case
+#     -> srt/server.py 覆盖行 {3}（[p1] [p2] 参数化目录合并为一条）
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-map:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build test case map (v1.0.8)
+        uses: lb-actions/precision-test@v1.0.8
+        with:
+          repo: sglang
+          build-map: true
+          coverage-dir: data/coverage-data
+          source-dir: data/covstub
+          map-file: test_case_map.json
+
+      - name: Verify map content
+        run: |
+          test -f test_case_map.json
+          python3 - <<'EOF'
+          import json
+
+          with open("test_case_map.json", encoding="utf-8") as f:
+              m = json.load(f)
+
+          assert len(m) == 2, f"expected 2 entries, got {len(m)}: {list(m)}"
+
+          # file-level entry
+          key1 = "test/registered/npu/test_foo.py"
+          assert key1 in m, f"missing {key1!r}, got: {list(m)}"
+          files1 = m[key1]["files"]
+          assert "srt/utils.py" in files1, f"missing srt/utils.py, got: {list(files1)}"
+          assert sorted(files1["srt/utils.py"]) == [2, 5], f"unexpected lines: {files1['srt/utils.py']}"
+          assert "test/registered/conftest.py" not in files1, "non-product path leaked into map"
+
+          # function-level entry (params merged)
+          key2 = "python/sglang/multimodal_gen/test/test_bar.py::TestX::test_case"
+          assert key2 in m, f"missing {key2!r}, got: {list(m)}"
+          files2 = m[key2]["files"]
+          assert "srt/server.py" in files2, f"missing srt/server.py, got: {list(files2)}"
+          assert sorted(files2["srt/server.py"]) == [3], f"unexpected lines: {files2['srt/server.py']}"
+
+          print("map verification PASSED")
+          print(json.dumps(m, indent=2, ensure_ascii=False))
+          EOF
+
+      - name: Upload map artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-case-map
+          path: test_case_map.json
