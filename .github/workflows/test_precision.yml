@@ -67,7 +67,7 @@ jobs:
         run: cat recommended_pytest_paths.txt 
 
       - name: select-tests-case
-        uses: lb-actions/precision-test@v1.0.0
+        uses: lb-actions/precision-test@v1.0.1
         with:
           github-pr: vllm-project/vllm-ascend#12379
           source-dir: "${{ env.COVERAGE_PKG_DIR }}/covstub"
