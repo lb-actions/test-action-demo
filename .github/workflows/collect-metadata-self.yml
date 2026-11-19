@@ -18,7 +18,7 @@ jobs:
 
       - name: collect-mindie
         id: collect-mindie
-        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        uses: lb-actions/openlibing-metadata-collect@tzing_dev
         with:
           testcase-path: ./tests/noini
           # pytest-config-file: ""
@@ -26,7 +26,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.12"
 
       - name: Install pytest
         run: |
@@ -56,7 +56,7 @@ jobs:
 
       - name: collect-multi-nodes
         id: collect-multi-nodes
-        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        uses: lb-actions/openlibing-metadata-collect@tzing_dev
         with:
           pytest-config-file: resources/pytest_selftest_multi_nodes.ini
           rootdir: ./
@@ -66,7 +66,7 @@ jobs:
 
       - name: collect-multi-device
         id: collect-multi-device
-        uses: lb-actions/openlibing-metadata-collect@v1.0.1
+        uses: lb-actions/openlibing-metadata-collect@tzing_dev
         with:
           pytest-config-file: resources/pytest_selftest_multi_device.ini
           rootdir: ./

@@ -1,0 +1,28 @@
+name: CollectUnittestMetadata
+on:
+  pull_request:
+    types: ["merge", "open"]
+    branches: ["pr_push"]
+  workflow_dispatch:
+
+jobs:
+  Collect-Unittest-Metadata:
+    name: Collect-Unittest-Metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: fast_checkout
+        uses: actions/checkout@v4
+
+      - name: collect-unittest-metadata
+        id: collect-unittest
+        uses: lb-actions/openlibing-metadata-collect@tzing_dev
+        with:
+          framework: unittest
+          testcase-path: ./tests/unit-test
+
+      - name: print-metadata-filepath
+        run: |
+          echo "unittest metadata: ${{ steps.collect-unittest.outputs.metadata-output-path }}"
+
+      - name: print-content
+        run: cat ${{ steps.collect-unittest.outputs.metadata-output-path }}
