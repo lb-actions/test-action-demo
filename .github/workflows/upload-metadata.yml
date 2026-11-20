@@ -80,6 +80,27 @@ jobs:
         with:
           files: "/tmp/test_result_WejsKsE2.xml /tmp/metadata_presomke2.xml"
 
+      - name: Prepare files-dir test directory
+        run: |
+          mkdir -p /tmp/test-reports
+          cp /tmp/test_result_WejsKsE.xml /tmp/test-reports/TEST-results1.xml
+          cp /tmp/test_result_WejsKsE.xml /tmp/test-reports/TEST-results2.xml
+          cp /tmp/metadata_presomke.xml /tmp/test-reports/metadata_a.xml
+          cp /tmp/metadata_presomke.xml /tmp/test-reports/metadata_b.xml
+
+      - name: openlibing-upload-reports-files-dir
+        id: upload-files-dir
+        uses: lb-actions/openlibing-upload-reports@tzing_dev
+        with:
+          files-dir: "/tmp/test-reports"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: Check files-dir upload result
+        run: |
+          echo "success: ${{ steps.upload-files-dir.outputs.success }}"
+          echo "status-code: ${{ steps.upload-files-dir.outputs.status-code }}"
+          echo "response: ${{ steps.upload-files-dir.outputs.response-text }}"
+
       # - name: openlibing-upload-reports-style2
       #   uses: lb-actions/openlibing-upload-reports@v1.0.0
       #   with:
