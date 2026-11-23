@@ -1,30 +1,35 @@
 name: verl precision-test (v1.1.0)
 
 # 验证 lb-actions/precision-test@v1.1.0 对 verl 仓库（https://github.com/verl-project/verl）
-# 的两个能力，样例数据针对真实 PR verl-project/verl#8762 设计：
+# 的两个能力，样例数据针对真实 PR verl-project/verl#8774
+# （[trainer] fix: stabilize rollout IS standard deviation）设计：
+#
+# PR #8774 改动 3 个产品文件（无新增/修改 workflow yml，推荐全靠覆盖率精确匹配）：
+#   verl/experimental/agent_loop/agent_loop.py     改动行 {493, 509}
+#   verl/trainer/ppo/rollout_corr_helper.py        改动行 {770, 773}（767-769 纯注释插入被插件跳过）
+#   verl/workers/config/rollout.py                 改动行 {370}（raise ValueError 单行替换）
 #
 # 样例数据说明（verl 布局）：
-#   data/verl/coverage-data/  2 个伪覆盖率用例目录（e2e_ascend.yml / unit_demo.yml），
-#                             覆盖率文件为 coverage.py SQLite（file + arc 表），路径形如
-#                             /__w/verl/verl/verl/utils/transferqueue_utils.py，
-#                             嵌套层级 <yml>/<job>/coverage/step-XX/coverage.synthetic.1
-#   data/verl/covstub/        verl 源码 stub（verl/utils/transferqueue_utils.py，
-#                             第 58 行与真实 PR #8762 的改动行对齐：TransferQueue 版本号字符串）
+#   data/verl/coverage-data/  3 个伪覆盖率用例目录，覆盖率文件为 coverage.py SQLite
+#                             （file + arc 表），路径形如 /__w/verl/verl/<rel>，层级
+#                             <yml>/<job>/coverage/step-XX/coverage.synthetic.1：
+#     - e2e_ascend.yml：覆盖全部 3 个改动文件（行级+函数级命中）
+#     - e2e_ppo_trainer_megatron_vllm_2_ascend.yml：仅 agent_loop.py
+#     - npu_unit_tests.yml：仅 rollout.py
+#   data/verl/covstub/        verl 源码 stub，关键行号与 PR #8774 的 diff 精确对齐
 #
 # 能力 1 生成 map：build-map: true，传 coverage-dir / source-dir / map-file
-#   预期 map 2 条（e2e_ascend.yml / unit_demo.yml），各覆盖 utils/transferqueue_utils.py 行 57/58/59
-# 能力 2 推荐用例：传 coverage-dir / source-dir / map-file + github-pr verl-project/verl#8762
-#   PR #8762 改动了 5 个 .github/workflows/*.yml（直接推荐）+ 产品文件
-#   verl/utils/transferqueue_utils.py 行 58（覆盖率精确匹配，命中 e2e_ascend.yml 与 unit_demo.yml）
-#   预期推荐 6 个用例
+#   预期 map 3 条（3 个用例目录），e2e_ascend.yml 覆盖 3 个文件共 11 行
+# 能力 2 推荐用例：传 coverage-dir / source-dir / map-file + github-pr verl-project/verl#8774
+#   预期推荐 3 个用例（真实运行中 PR #8774 基于真实覆盖率数据推荐了 7 个，fixture 简化为 3 个）
 
 on:
   workflow_dispatch:
     inputs:
       pr-number:
-        description: 'verl PR number to recommend (default: 8762)'
+        description: 'verl PR number to recommend (default: 8774)'
         required: false
-        default: '8762'
+        default: '8774'
 
 jobs:
   verl-precision-test:
@@ -52,34 +57,46 @@ jobs:
           with open("verl_test_case_map.json", encoding="utf-8") as f:
               m = json.load(f)
 
-          assert len(m) == 2, f"expected 2 entries, got {len(m)}: {list(m)}"
-          for case in ("e2e_ascend.yml", "unit_demo.yml"):
-              assert case in m, f"missing {case}, got: {list(m)}"
-              files = m[case]["files"]
-              assert "utils/transferqueue_utils.py" in files, (
-                  f"missing product file in {case}, got: {list(files)}")
-              assert sorted(files["utils/transferqueue_utils.py"]) == [57, 58, 59], (
-                  f"unexpected covered lines: {files['utils/transferqueue_utils.py']}")
+          assert len(m) == 3, f"expected 3 entries, got {len(m)}: {list(m)}"
+
+          e2e = m["e2e_ascend.yml"]["files"]
+          assert "experimental/agent_loop/agent_loop.py" in e2e, f"missing file: {list(e2e)}"
+          assert "trainer/ppo/rollout_corr_helper.py" in e2e
+          assert "workers/config/rollout.py" in e2e
+          # arc 行及其 tono 行计入覆盖；噪音行（def/空行等）被过滤
+          assert {493, 494, 509} <= set(e2e["experimental/agent_loop/agent_loop.py"]), (
+              e2e["experimental/agent_loop/agent_loop.py"])
+          assert {767, 768, 769, 770, 773, 774} <= set(e2e["trainer/ppo/rollout_corr_helper.py"])
+          assert 370 in e2e["workers/config/rollout.py"]
+
+          assert {493, 494, 509} <= set(
+              m["e2e_ppo_trainer_megatron_vllm_2_ascend.yml"]["files"]["experimental/agent_loop/agent_loop.py"])
+          assert 370 in m["npu_unit_tests.yml"]["files"]["workers/config/rollout.py"]
 
           print("map verification PASSED")
           print(json.dumps(m, indent=2))
           EOF
 
-      # ============ 能力 2：推荐用例（covdata + covstub + map + PR #8762） ============
+      # ============ 能力 2：推荐用例（covdata + covstub + map + PR #8774） ============
       - name: '2. Recommend test cases (covdata + covstub + map + PR)'
         id: precision
         uses: lb-actions/precision-test@v1.1.0
         with:
           repo: verl
-          github-pr: verl-project/verl#${{ github.event.inputs.pr-number || '8762' }}
+          github-pr: verl-project/verl#${{ github.event.inputs.pr-number || '8774' }}
           coverage-dir: data/verl/coverage-data
           source-dir: data/verl/covstub
           map-file: verl_test_case_map.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Show recommended cases
+      - name: Verify recommended cases
         run: |
           echo "=== recommended test cases ==="
           cat recommended_pytest_paths.txt
-          echo "total: $(wc -l < recommended_pytest_paths.txt)"
+          COUNT=$(wc -l < recommended_pytest_paths.txt)
+          echo "total: $COUNT"
+          grep -q '^e2e_ascend.yml$' recommended_pytest_paths.txt
+          grep -q '^e2e_ppo_trainer_megatron_vllm_2_ascend.yml$' recommended_pytest_paths.txt
+          grep -q '^npu_unit_tests.yml$' recommended_pytest_paths.txt
+          echo "recommendation verification PASSED"
