@@ -59,7 +59,7 @@ jobs:
 
       - name: openlibing-upload-reports-style1
         id: upload
-        uses: lb-actions/openlibing-upload-reports@tzing_dev
+        uses: lb-actions/openlibing-upload-reports@v1.0.3
         with:
           files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
           github-token: ${{ secrets.mytoken }}
@@ -76,7 +76,7 @@ jobs:
           cp /tmp/metadata_presomke.xml /tmp/metadata_presomke2.xml
 
       - name: openlibing-upload-reports-style1
-        uses: lb-actions/openlibing-upload-reports@tzing_dev
+        uses: lb-actions/openlibing-upload-reports@v1.0.3
         with:
           files: "/tmp/test_result_WejsKsE2.xml /tmp/metadata_presomke2.xml"
 
@@ -90,7 +90,7 @@ jobs:
 
       - name: openlibing-upload-reports-files-dir
         id: upload-files-dir
-        uses: lb-actions/openlibing-upload-reports@tzing_dev
+        uses: lb-actions/openlibing-upload-reports@v1.0.3
         with:
           files-dir: "/tmp/test-reports"
           github-token: ${{ secrets.mytoken }}

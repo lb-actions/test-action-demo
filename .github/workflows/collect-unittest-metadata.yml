@@ -15,7 +15,7 @@ jobs:
 
       - name: collect-unittest-metadata
         id: collect-unittest
-        uses: lb-actions/openlibing-metadata-collect@tzing_dev
+        uses: lb-actions/openlibing-metadata-collect@v1.0.2
         with:
           framework: unittest
           testcase-path: ./tests/unit-test

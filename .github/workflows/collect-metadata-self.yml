@@ -18,7 +18,7 @@ jobs:
 
       - name: collect-mindie
         id: collect-mindie
-        uses: lb-actions/openlibing-metadata-collect@tzing_dev
+        uses: lb-actions/openlibing-metadata-collect@v1.0.2
         with:
           testcase-path: ./tests/noini
           # pytest-config-file: ""
@@ -46,7 +46,7 @@ jobs:
         run: cat ${{ steps.collect-mindie.outputs.metadata-output-path }}
 
       - name: openlibing-upload-reports-style1
-        uses: lb-actions/openlibing-upload-reports@v1.0.0
+        uses: lb-actions/openlibing-upload-reports@v1.0.3
         with:
           files: >
             ${{ steps.collect-mindie.outputs.metadata-output-path }}
@@ -56,7 +56,7 @@ jobs:
 
       - name: collect-multi-nodes
         id: collect-multi-nodes
-        uses: lb-actions/openlibing-metadata-collect@tzing_dev
+        uses: lb-actions/openlibing-metadata-collect@v1.0.2
         with:
           pytest-config-file: resources/pytest_selftest_multi_nodes.ini
           rootdir: ./
@@ -66,7 +66,7 @@ jobs:
 
       - name: collect-multi-device
         id: collect-multi-device
-        uses: lb-actions/openlibing-metadata-collect@tzing_dev
+        uses: lb-actions/openlibing-metadata-collect@v1.0.2
         with:
           pytest-config-file: resources/pytest_selftest_multi_device.ini
           rootdir: ./
