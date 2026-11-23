@@ -90,7 +90,7 @@ jobs:
 
       - name: openlibing-upload-reports-files-dir
         id: upload-files-dir
-        uses: lb-actions/openlibing-upload-reports@v1.0.3
+        uses: lb-actions/openlibing-upload-reports@tzing_dev
         with:
           files-dir: "/tmp/test-reports"
           github-token: ${{ secrets.mytoken }}
@@ -100,6 +100,29 @@ jobs:
           echo "success: ${{ steps.upload-files-dir.outputs.success }}"
           echo "status-code: ${{ steps.upload-files-dir.outputs.status-code }}"
           echo "response: ${{ steps.upload-files-dir.outputs.response-text }}"
+
+      - name: Prepare symlink test file
+        run: |
+          ln -s /tmp/metadata_presomke.xml /tmp/metadata_symlink.xml
+
+      - name: openlibing-upload-reports-symlink-test
+        id: upload-symlink
+        uses: lb-actions/openlibing-upload-reports@tzing_dev
+        continue-on-error: true
+        with:
+          files: "/tmp/metadata_symlink.xml"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: Check symlink rejection result
+        run: |
+          echo "success: ${{ steps.upload-symlink.outputs.success }}"
+          echo "status-code: ${{ steps.upload-symlink.outputs.status-code }}"
+          echo "response: ${{ steps.upload-symlink.outputs.response-text }}"
+          if [ "${{ steps.upload-symlink.outputs.success }}" = "false" ]; then
+            echo "Symlink correctly rejected"
+          else
+            echo "WARNING: Symlink was not rejected!"
+          fi
 
       # - name: openlibing-upload-reports-style2
       #   uses: lb-actions/openlibing-upload-reports@v1.0.0

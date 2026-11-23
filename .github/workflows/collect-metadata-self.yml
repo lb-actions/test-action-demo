@@ -7,6 +7,10 @@ on:
     branches: ["pr_push"]
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   Collect-Metadata:
     name: Collect-Metadata
