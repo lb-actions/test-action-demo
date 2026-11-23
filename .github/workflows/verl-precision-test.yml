@@ -1,0 +1,85 @@
+name: verl precision-test (v1.1.0)
+
+# 验证 lb-actions/precision-test@v1.1.0 对 verl 仓库（https://github.com/verl-project/verl）
+# 的两个能力，样例数据针对真实 PR verl-project/verl#8762 设计：
+#
+# 样例数据说明（verl 布局）：
+#   data/verl/coverage-data/  2 个伪覆盖率用例目录（e2e_ascend.yml / unit_demo.yml），
+#                             覆盖率文件为 coverage.py SQLite（file + arc 表），路径形如
+#                             /__w/verl/verl/verl/utils/transferqueue_utils.py，
+#                             嵌套层级 <yml>/<job>/coverage/step-XX/coverage.synthetic.1
+#   data/verl/covstub/        verl 源码 stub（verl/utils/transferqueue_utils.py，
+#                             第 58 行与真实 PR #8762 的改动行对齐：TransferQueue 版本号字符串）
+#
+# 能力 1 生成 map：build-map: true，传 coverage-dir / source-dir / map-file
+#   预期 map 2 条（e2e_ascend.yml / unit_demo.yml），各覆盖 utils/transferqueue_utils.py 行 57/58/59
+# 能力 2 推荐用例：传 coverage-dir / source-dir / map-file + github-pr verl-project/verl#8762
+#   PR #8762 改动了 5 个 .github/workflows/*.yml（直接推荐）+ 产品文件
+#   verl/utils/transferqueue_utils.py 行 58（覆盖率精确匹配，命中 e2e_ascend.yml 与 unit_demo.yml）
+#   预期推荐 6 个用例
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr-number:
+        description: 'verl PR number to recommend (default: 8762)'
+        required: false
+        default: '8762'
+
+jobs:
+  verl-precision-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ============ 能力 1：生成 map（covdata + covstub -> map） ============
+      - name: '1. Generate test case map (covdata + covstub -> map)'
+        uses: lb-actions/precision-test@v1.1.0
+        with:
+          repo: verl
+          build-map: 'true'
+          coverage-dir: data/verl/coverage-data
+          source-dir: data/verl/covstub
+          map-file: verl_test_case_map.json
+
+      - name: Verify map content
+        run: |
+          test -f verl_test_case_map.json
+          python3 - <<'EOF'
+          import json
+
+          with open("verl_test_case_map.json", encoding="utf-8") as f:
+              m = json.load(f)
+
+          assert len(m) == 2, f"expected 2 entries, got {len(m)}: {list(m)}"
+          for case in ("e2e_ascend.yml", "unit_demo.yml"):
+              assert case in m, f"missing {case}, got: {list(m)}"
+              files = m[case]["files"]
+              assert "utils/transferqueue_utils.py" in files, (
+                  f"missing product file in {case}, got: {list(files)}")
+              assert sorted(files["utils/transferqueue_utils.py"]) == [57, 58, 59], (
+                  f"unexpected covered lines: {files['utils/transferqueue_utils.py']}")
+
+          print("map verification PASSED")
+          print(json.dumps(m, indent=2))
+          EOF
+
+      # ============ 能力 2：推荐用例（covdata + covstub + map + PR #8762） ============
+      - name: '2. Recommend test cases (covdata + covstub + map + PR)'
+        id: precision
+        uses: lb-actions/precision-test@v1.1.0
+        with:
+          repo: verl
+          github-pr: verl-project/verl#${{ github.event.inputs.pr-number || '8762' }}
+          coverage-dir: data/verl/coverage-data
+          source-dir: data/verl/covstub
+          map-file: verl_test_case_map.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show recommended cases
+        run: |
+          echo "=== recommended test cases ==="
+          cat recommended_pytest_paths.txt
+          echo "total: $(wc -l < recommended_pytest_paths.txt)"
