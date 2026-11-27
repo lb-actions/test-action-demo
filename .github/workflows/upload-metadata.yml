@@ -18,7 +18,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
-      - name: generate-xml
+      - name: 全链路模拟生产测试结果和元数据
         run: |
           cat > /tmp/test_result_WejsKsE.xml << 'EOF'
           <?xml version="1.0" ?>
@@ -57,11 +57,21 @@ jobs:
           </metadata>
           EOF
 
-      - name: openlibing-upload-reports-style1
-        id: upload
-        uses: lb-actions/openlibing-upload-reports@v1.0.3
+      - name: 全链路收插件集元数据
+        id: collect-mindie
+        uses: lb-actions/openlibing-metadata-collect@v1.0.2
         with:
-          files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
+          testcase-path: ./tests/noini
+          # pytest-config-file: ""
+
+      - name: 全链路上次测试报告
+        id: upload
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        with:
+          files: >
+            /tmp/test_result_WejsKsE.xml
+            /tmp/metadata_presomke.xml
+            ${{ steps.collect-mindie.outputs.metadata-output-path }}
           github-token: ${{ secrets.mytoken }}
 
       - name: Check upload result
@@ -76,7 +86,7 @@ jobs:
           cp /tmp/metadata_presomke.xml /tmp/metadata_presomke2.xml
 
       - name: openlibing-upload-reports-style1
-        uses: lb-actions/openlibing-upload-reports@v1.0.3
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
         with:
           files: "/tmp/test_result_WejsKsE2.xml /tmp/metadata_presomke2.xml"
 

@@ -1,0 +1,239 @@
+name: upload-reports
+on:
+  # push:
+  #   branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  Upload-Metadata:
+    name: upload-metadata
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: generate-xml
+        run: |
+          cat > /tmp/test_result_WejsKsE.xml << 'EOF'
+          <?xml version="1.0" ?>
+          <testsuites name="Uniautos test">
+              <testsuite name="uniautos" tests="2" skipped="0" failures="0" time="41.0" timestamp="2026-07-07 07:07:07">
+                  <testcase name="TestCase_presomke" time="19.0"/>
+                  <testcase name="TestCase_postsmoke" time="22.0"/>
+              </testsuite>
+          </testsuites>
+          EOF
+          cat > /tmp/metadata_presomke.xml << 'EOF'
+          <?xml version="1.0" ?>
+          <metadata>
+              <pipelineId>4f072c65344d44e089218276623a26d4</pipelineId>
+              <pipelineRunId>04fad577ab6f4dc59191d896fbd511ae</pipelineRunId>
+              <jobId>ffc8fb7d34714aed82d3d53cdb485b48_20260727_1</jobId>
+              <frameType>uniautos</frameType>
+              <repoUrl>https://gitcode.com/lqz2/MindSpeed_testcase.git</repoUrl>
+              <repoBranch>main</repoBranch>
+              <testCases>
+                  <testCase>
+                      <name>TestCase_presomke</name>
+                      <className>TestCase_presomke</className>
+                      <filePath>Testcases/path/TestCase_presomke.py</filePath>
+                      <level>P0</level>
+                      <type>NoType</type>
+                  </testCase>
+                  <testCase>
+                      <name>TestCase_postsmoke</name>
+                      <className>TestCase_postsmoke</className>
+                      <filePath>Testcases/path/TestCase_postsmoke.py</filePath>
+                      <level>P0</level>
+                      <type>NoType</type>
+                  </testCase>
+              </testCases>
+          </metadata>
+          EOF
+
+      # ===== Test 003: 目录下混合xml与非xml上传 =====
+      - name: "003-prepare-mixed-xml-nonxml"
+        run: |
+          mkdir -p /tmp/test-003
+          cp /tmp/test_result_WejsKsE.xml /tmp/test-003/result1.xml
+          cp /tmp/metadata_presomke.xml /tmp/test-003/metadata1.xml
+          echo "not an xml" > /tmp/test-003/readme.txt
+          echo '{"key":"value"}' > /tmp/test-003/config.json
+          echo "log line" > /tmp/test-003/run.log
+
+      - name: "003-upload-mixed-dir"
+        id: upload-003
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/test-003"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "003-check-result"
+        run: |
+          echo "success: ${{ steps.upload-003.outputs.success }}"
+          echo "status-code: ${{ steps.upload-003.outputs.status-code }}"
+          echo "response: ${{ steps.upload-003.outputs.response-text }}"
+
+      # ===== Test 004: 目录下子目录xml不收集 =====
+      - name: "004-prepare-subdir-xml"
+        run: |
+          mkdir -p /tmp/test-004/subdir
+          cp /tmp/test_result_WejsKsE.xml /tmp/test-004/root_result.xml
+          cp /tmp/metadata_presomke.xml /tmp/test-004/root_metadata.xml
+          cp /tmp/test_result_WejsKsE.xml /tmp/test-004/subdir/sub_result.xml
+          cp /tmp/metadata_presomke.xml /tmp/test-004/subdir/sub_metadata.xml
+
+      - name: "004-upload-with-subdir"
+        id: upload-004
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/test-004"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "004-check-result"
+        run: |
+          echo "success: ${{ steps.upload-004.outputs.success }}"
+          echo "status-code: ${{ steps.upload-004.outputs.status-code }}"
+          echo "response: ${{ steps.upload-004.outputs.response-text }}"
+
+      # ===== Test 005: 目录不存在上传失败 =====
+      - name: "005-upload-nonexistent-dir"
+        id: upload-005
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/this-directory-does-not-exist-005"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "005-check-result"
+        run: |
+          echo "success: ${{ steps.upload-005.outputs.success }}"
+          echo "status-code: ${{ steps.upload-005.outputs.status-code }}"
+          echo "response: ${{ steps.upload-005.outputs.response-text }}"
+          if [ "${{ steps.upload-005.outputs.success }}" = "false" ]; then
+            echo "Non-existent directory correctly rejected"
+          else
+            echo "WARNING: Non-existent directory was not rejected!"
+          fi
+
+      # ===== Test 006: 空目录上传 =====
+      - name: "006-prepare-empty-dir"
+        run: mkdir -p /tmp/test-006
+
+      - name: "006-upload-empty-dir"
+        id: upload-006
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/test-006"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "006-check-result"
+        run: |
+          echo "success: ${{ steps.upload-006.outputs.success }}"
+          echo "status-code: ${{ steps.upload-006.outputs.status-code }}"
+          echo "response: ${{ steps.upload-006.outputs.response-text }}"
+
+      # ===== Test 007: 目录下无xml上传 =====
+      - name: "007-prepare-no-xml-dir"
+        run: |
+          mkdir -p /tmp/test-007
+          echo "text file" > /tmp/test-007/notes.txt
+          echo '{"json":"data"}' > /tmp/test-007/data.json
+          echo "csv,data" > /tmp/test-007/table.csv
+
+      - name: "007-upload-no-xml-dir"
+        id: upload-007
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/test-007"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "007-check-result"
+        run: |
+          echo "success: ${{ steps.upload-007.outputs.success }}"
+          echo "status-code: ${{ steps.upload-007.outputs.status-code }}"
+          echo "response: ${{ steps.upload-007.outputs.response-text }}"
+
+      # ===== Test 009: 大写XML上传 =====
+      - name: "009-prepare-uppercase-xml"
+        run: |
+          mkdir -p /tmp/test-009
+          cp /tmp/test_result_WejsKsE.xml /tmp/test-009/RESULT.XML
+          cp /tmp/metadata_presomke.xml /tmp/test-009/METADATA.XML
+
+      - name: "009-upload-uppercase-xml"
+        id: upload-009
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/test-009"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "009-check-result"
+        run: |
+          echo "success: ${{ steps.upload-009.outputs.success }}"
+          echo "status-code: ${{ steps.upload-009.outputs.status-code }}"
+          echo "response: ${{ steps.upload-009.outputs.response-text }}"
+
+      # ===== Test 010: 混合空与非空xml上传 =====
+      - name: "010-prepare-mixed-empty-nonempty"
+        run: |
+          mkdir -p /tmp/test-010
+          cp /tmp/test_result_WejsKsE.xml /tmp/test-010/nonempty1.xml
+          cp /tmp/metadata_presomke.xml /tmp/test-010/nonempty2.xml
+          touch /tmp/test-010/empty1.xml
+          touch /tmp/test-010/empty2.xml
+
+      - name: "010-upload-mixed-empty"
+        id: upload-010
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/test-010"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "010-check-result"
+        run: |
+          echo "success: ${{ steps.upload-010.outputs.success }}"
+          echo "status-code: ${{ steps.upload-010.outputs.status-code }}"
+          echo "response: ${{ steps.upload-010.outputs.response-text }}"
+
+      # ===== Test 011: 全部xml为空上传 =====
+      - name: "011-prepare-all-empty-xml"
+        run: |
+          mkdir -p /tmp/test-011
+          touch /tmp/test-011/empty_a.xml
+          touch /tmp/test-011/empty_b.xml
+          touch /tmp/test-011/empty_c.xml
+
+      - name: "011-upload-all-empty"
+        id: upload-011
+        uses: lb-actions/openlibing-upload-reports@v1.0.5
+        continue-on-error: true
+        with:
+          files-dir: "/tmp/test-011"
+          github-token: ${{ secrets.mytoken }}
+
+      - name: "011-check-result"
+        run: |
+          echo "success: ${{ steps.upload-011.outputs.success }}"
+          echo "status-code: ${{ steps.upload-011.outputs.status-code }}"
+          echo "response: ${{ steps.upload-011.outputs.response-text }}"
+
+      # - name: openlibing-upload-reports-style2
+      #   uses: lb-actions/openlibing-upload-reports@v1.0.0
+      #   with:
+      #     files: "/tmp/test_result_WejsKsE.xml /tmp/metadata_presomke.xml"
+      #     openlibing-secret: ${{ secrets.scheduler_secret }}
+      #     label: "simulation"
+      #     archive-path: "testpath/details/${{ github.run_id }}"
